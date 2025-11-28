@@ -116,7 +116,7 @@ RL data is a list of records. Below is a **single simplified case** (no real pat
   "mask_path": ["string list (only for seg tasks, optional)"],
   "max_steps": 6
 }
-
+```
 
 ---
 
