@@ -1,0 +1,4 @@
+[
+  {"question_id": 1, "answer": "C", "question_type": "multiple choice", "question": "Based on this CT image, is there an abnormality?", "options": ["A. pancreas tumor", "B. No abnormality detected", "C. liver tumor", "D. kideny tumor", "E. kideny cyst"], "data_type": "vqa", "image_path": ["your/path/to/SFT+RL/data_case/Images/liver_case_original_image_1.png"], "source": "BioMedParse", "max_steps":6},
+  {"question_id": 1, "answer": "C", "question_type": "segmentation", "question": "Please segment the liver tumor in this CT.", "options": ["A. Sure.", "B. No liver tumor detected"], "data_type": "seg", "image_path": ["your/path/to/SFT+RL/data_case/Images/liver_case_original_image_1.png"], "source": "BioMedParse","mask_path":["your/path/to/SFT+RL/data_case/Images/liver_case_GTmask_image_1.png"], "max_steps":6}
+]

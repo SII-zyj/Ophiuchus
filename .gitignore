@@ -1,0 +1,38 @@
+# Core dumps
+core.*
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Logs / outputs
+logs/
+runs/
+wandb/
+outputs/
+checkpoints/
+
+# Big artifacts / model weights
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.bin
+*.tar
+*.tar.gz
+*.zip
+
+# BiomedParse generated/data (按你项目结构)
+examples/env_server/BiomedParse/BiomedParse-main/biomedparse_datasets/
+examples/env_server/BiomedParse/BiomedParse-main/figures/
+examples/env_server/BiomedParse/BiomedParse-main/**/results/
+
+# ---- remove LFS pointer artifacts ----
+
+# --- ignore generated/data artifacts ---
+core.*
+examples/env_server/BiomedParse/BiomedParse-main/biomedparse_datasets/
+examples/env_server/BiomedParse/BiomedParse-main/figures/
+examples/env_server/BiomedParse/BiomedParse-main/**/results/
