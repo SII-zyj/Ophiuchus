@@ -239,7 +239,7 @@ To ensure fairness, since **Med-R1-2B** is trained on part of the OmniMedVQA tes
 
 
 <div align=center>
-<img width="650" alt="image" src="asset/result.png">
+<img width="800" alt="image" src="asset/result.png">
 </div>
 
 
