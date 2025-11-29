@@ -38,7 +38,7 @@ Unlike “static” reasoning that never looks again, Ophiuchus runs a **Thought
 ## 🧩 Framework Overview
 
 <div align="center">
-  <img src="asset/method.png" width="850" />
+  <img src="asset/method.png" width="1200" />
 </div>
 
 Ophiuchus is trained to produce **interleaved** reasoning traces:
@@ -66,7 +66,7 @@ Below are a few **representative qualitative cases** (more details, captions, an
 
 ### 1) Visual-Cue Search (Find the right evidence)
 <div align="center">
-  <img src="asset/case_visual_cue_search.png" width="850" />
+  <img src="asset/case_visual_cue_search.png" width="600" />
 </div>
 
 **Pattern:** the model first admits “a global view is insufficient”, then uses segmentation to propose candidate regions and zoom-in to verify subtle cues, finally aggregating evidence into a reliable conclusion.
@@ -75,7 +75,7 @@ Below are a few **representative qualitative cases** (more details, captions, an
 
 ### 2) Confirmation via Zoom-In (Verify before committing)
 <div align="center">
-  <img src="asset/case_confirmation.png" width="850" />
+  <img src="asset/case_confirmation.png" width="600" />
 </div>
 
 **Pattern:** after a tentative hypothesis, the model performs targeted zoom-ins to confirm key visual signatures and reduce uncertainty.
@@ -84,7 +84,7 @@ Below are a few **representative qualitative cases** (more details, captions, an
 
 ### 3) Hallucination Mitigation (Correct itself with tools)
 <div align="center">
-  <img src="asset/case_mitigation.png" width="850" />
+  <img src="asset/case_mitigation.png" width="600" />
 </div>
 
 **Pattern:** the model detects a mismatch between its text reasoning and the visual evidence, re-invokes tools to re-check the image, then revises the answer grounded in the retrieved evidence.
