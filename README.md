@@ -121,54 +121,139 @@ RL data is a list of records. Below is a **single simplified case** (no real pat
 ---
 
 ## 🏋️ Training
-### Installation
+### Installation verl
 ```bash
 # Please install verl from our repository. 
 # This will help you better visualize the changing trends of each component in the reward during the training process.
-cd verl 
+conda create -n verl-agent python==3.12 -y
+conda activate verl-agent
+
+pip3 install torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+pip3 install flash-attn==2.7.4.post1 --no-build-isolation
+
+pip3 install -e .
+
+pip3 install vllm==0.8.5
+```
+
+### Install Toolbox Environments
+> ⚠️ **Important:** 
+To run an agent in any of these environments, you must first install and configure the corresponding environment. We strongly recommend installing ***each environment in its own dedicated conda environment*** to avoid potential package version conflicts.
+
+#### 1. SAM 2
+SAM 2 needs to be installed first before use. The code requires `python>=3.10`, as well as `torch>=2.5.1` and `torchvision>=0.20.1`. Please follow the instructions [here](https://pytorch.org/get-started/locally/) to install both PyTorch and TorchVision dependencies. You can install SAM 2 on a GPU machine using:
+```bash
+cd ./examples/env_server/sam2/sam2
+
 pip install -e .
 ```
+We need to download a model checkpoint. All the model checkpoints can be downloaded by running:
+```bash
+cd ./examples/env_server/sam2/checkpoints && \
+./download_ckpts.sh && \
+cd ..
+```
+or individually from:
+
+- [sam2.1_hiera_tiny.pt](https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_tiny.pt)
+- [sam2.1_hiera_small.pt](https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_small.pt)
+- [sam2.1_hiera_base_plus.pt](https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_base_plus.pt)
+- [sam2.1_hiera_large.pt](https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_large.pt)
+
+---
+
+#### 2. BiomedParse
+Create a new conda environment from scratch:
+```bash
+cd ./examples/env_server/BiomedParse/BiomedParse-main 
+conda create -n biomedparse python=3.9.19
+conda activate biomedparse
+```
+
+Install Pytorch
+```sh
+conda install pytorch torchvision torchaudio pytorch-cuda=12.4 -c pytorch -c nvidia
+```
+
+Install dependencies
+```sh
+pip install -r assets/requirements/requirements.txt
+```
+
+Please download the Hugging Face model [openai/clip-vit-base-patch32](https://huggingface.co/openai/clip-vit-base-patch32) into `/openai/clip-vit-base-patch32`, and download [microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext](https://huggingface.co/microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext) into `BiomedParse-main/microsoft/BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext`.
+
+---
+
+<!-- > ⚠️ **Important:**  
+To run an agent in any of these environments, you must first install and configure the corresponding environment. Please refer to the [SAM Setup Guide](/examples/env_server/sam2/sam2/README.md) and [BiomedParse Setup Guide](/examples/env_server/BiomedParse/BiomedParse-main/README.md) for step-by-step installation instructions. -->
+
 ### Start !!!
-For RL training, please specify the configuration in `./run.sh`, including the TRAIN_DATA and MODEL_PATH, as well as the configuration variables related to SCORE.
+First, run cold-start SFT and Self-Reflection Fine-Tuning. Please specify the configuration in `/scripts/SFT/cold-start/my_qwen2_5vl_lora_sft.yaml` and `/scripts/SFT/reflective_rejection_fine_tuning/config_reflective.yaml`, including the `dataset` and `model_name_or_path` fields.
+### Stage A — Cold-start SFT
+```bash 
+bash ./scripts/SFT/cold-start/train_cold_start.sh
+```
+### Stage B — Self-reflection Fine-tuning
+```bash 
+bash ./scripts/SFT/reflective_rejection_fine_tuning/train_reflective.sh
+```
+### Stage C — Agentic Tool RL (ATRL)
+For RL training, please start the external ToolBox first as a local API service.
+#### Start tool servers 
+
+**1) Start the SAM2 server**
+You can set your local port and `CUDA_VISIBLE_DEVICES`.
+```bash
+bash ./examples/env_server/start_sam2_server.sh
+```
+**2) Start the BiomedParse server**
+You can set your local port and `CUDA_VISIBLE_DEVICES`, and you may also adjust the `CLIP` and `BIOMEDBERT` paths as needed.
+```bash
+bash ./examples/env_server/start_biomedparse_server.sh
+```
+
+#### Start RL (GRPO)
+GRPO is a critic-free algorithm that estimates relative advantages based on a group of full episode trajectories.
 ```bash
 # You can customize and adjust the training parameters according to your hardware capabilities to avoid OOM.
-bash ./run.sh
+bash /examples/grpo_trainer/run_ATRL.sh
 ```
+
 
 ## 🤔 Model
 | Model             | Base Model                                                   | Link                                                       | GPU Memory   | 
 | ----------------- | ------------------------------------------------------------ | ---------------------------------------------------------- | ------------ |
-| Thoth-mini     | [Qwen3-4B](https://huggingface.co/Qwen/Qwen3-4B) | [Wait]()      | 8GB |  
-| Thoth   | [Qwen3-8B](https://huggingface.co/Qwen/Qwen3-8B) | [Wait]()   | 17GB |
+| Ophiuchus | [Qwen2.5-VL-7B](https://huggingface.co/Qwen/Qwen2.5-VL-7B) | [Wait]() | 17GB |
 
-We provide a simple inference script in `./infer.py`.
 
 ## 🧑‍⚖️ Evaluation 
 
-You can use the script we provide in `./eval/eval_batch.py` to evaluate the Scirecipe-Eval benchmark (it may require slight modifications). Below are the specific instructions.
 
 ## 🏁 Results
 
-Main results on SciRecipe-Eval. Metrics left of the dashed line evaluate executability, those on the right measure lexical similarity. Bold denotes the best score.
+**Performance comparison on medical VQA benchmarks.**  
+Gray-shaded rows denote large-sized models. **Bold** and <u>underlined</u> indicate the best and second-best results, respectively.  
+*Improvement* in the last row denotes the absolute gain of **Ophiuchus** over Qwen2.5-VL-7B (w/o tool use).  
+Avg. is the arithmetic mean over the seven *Out-of-Domain* zero-shot benchmarks.  
+To ensure fairness, since **Med-R1-2B** is trained on part of the OmniMedVQA test set, its Avg is computed only over the remaining six benchmarks (excluding OmniMed).
+
 
 <div align=center>
-<img width="650" alt="image" src="asset/res1.png">
+<img width="650" alt="image" src="asset/result.png">
 </div>
 
-<div align=center>
-<img width="550" alt="image" src="asset/res2.png">
-</div>
 
 ## 🐎 TODO
 - Improve repository structure and documentation to enhance readability.
-- Release **Thoth** model checkpoints on HuggingFace.
-- Publish the **SciRecipe** dataset on HuggingFace.
+- Release model checkpoints on HuggingFace.
+- Publish the dataset on HuggingFace.
 - Address community feedback and resolve reported issues.
 
 
 ## 🙏🏼 Acknowledgement
 
-We gratefully acknowledge the inspiring work of [VERL](https://github.com/volcengine/verl) and [MinerU](https://github.com/opendatalab/MinerU) which have provided essential foundations and inspiration for this project. We also thank the developers of these outstanding tools for their contributions to open-source innovation.
+We gratefully acknowledge the inspiring work of [VERL](https://github.com/volcengine/verl), [verl-agent](https://github.com/volcengine/verl-agent), [SAM2](https://github.com/facebookresearch/sam2), and [BioMedParse](https://github.com/microsoft/BiomedParse), which provided essential foundations and inspiration for this project. We also thank the developers of these outstanding tools for their contributions to open-source innovation.
+
 
 ## 📖 Citation
 

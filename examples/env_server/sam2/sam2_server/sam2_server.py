@@ -3,24 +3,24 @@
 """
 sam2_server.py
 
-FastAPI + SAM2ImagePredictor（与官方推理流程一致）：
-- 使用 Hydra 载入 config yaml → 得到 cfg
-- 调用你本地的 build_sam2(cfg=cfg, ckpt_path=..., device=...) 构建模型
-- 用 SAM2ImagePredictor 做 set_image + predict
-- 返回官方同款输出：masks, scores, low_res_masks（打包为 .npz）
+FastAPI + SAM2ImagePredictor (consistent with the official inference flow):
+- Load the Hydra config yaml -> obtain cfg
+- Build the model via your local build_sam2(cfg=cfg, ckpt_path=..., device=...)
+- Use SAM2ImagePredictor to run set_image + predict
+- Return the official-style outputs: masks, scores, low_res_masks (packed as .npz)
 
 HTTP:
   POST /segment
     {
       "image_path": "...",
-      "bbox": [x1, y1, x2, y2],        # 可选，XYXY 像素坐标
-      "clicklist": [[x, y], ...],      # 可选
-      "labels": [1, 0, ...],           # 可选
+      "bbox": [x1, y1, x2, y2],        # optional, XYXY pixel coordinates
+      "clicklist": [[x, y], ...],      # optional
+      "labels": [1, 0, ...],           # optional
       "multimask_output": true,
       "return_logits": false
     }
 
-  返回：application/octet-stream （.npz）
+  Response: application/octet-stream (.npz)
     np.load(...):
       masks         -> (C, H, W)
       scores        -> (C,)
@@ -49,58 +49,58 @@ from hydra import initialize_config_dir, compose
 from hydra.core.global_hydra import GlobalHydra
 
 
-# ======================= 命令行参数 =======================
-parser = argparse.ArgumentParser(description="SAM2 图像分割服务（官方风格 + Hydra cfg）")
-parser.add_argument("--gpu", type=int, default=0, help="使用的 GPU 序号（默认 0）")
-parser.add_argument("--port", type=int, default=6060, help="服务端口号（默认 6060）")
+# ======================= Command-line args =======================
+parser = argparse.ArgumentParser(description="SAM2 image segmentation service (official style + Hydra cfg)")
+parser.add_argument("--gpu", type=int, default=0, help="GPU index to use (default: 0)")
+parser.add_argument("--port", type=int, default=6060, help="Service port (default: 6060)")
 parser.add_argument(
     "--checkpoint",
     type=str,
     default="/your/path/to/sam2.1_hiera_large.pt",
-    help="SAM2 checkpoint 路径",
+    help="Path to the SAM2 checkpoint",
 )
 parser.add_argument(
     "--config",
     type=str,
     default="/your/path/to/verl-agent/examples/env_server/sam2/sam2/configs/sam2.1/sam2.1_hiera_l.yaml",
-    help="SAM2 config yaml 绝对路径（Hydra 配置）",
+    help="Absolute path to the SAM2 config yaml (Hydra config)",
 )
 args = parser.parse_args()
 
 
-# ======================= 请求体定义 =======================
+# ======================= Request body =======================
 class SegmentRequest(BaseModel):
-    image_path: str = Field(..., description="待分割图片路径（本地路径）")
+    image_path: str = Field(..., description="Path to the input image (local path)")
 
     bbox: Optional[List[float]] = Field(
         None,
-        description="目标 bbox，XYXY 像素坐标，如 [x1, y1, x2, y2]；可为空",
+        description="Target bbox in XYXY pixel coordinates, e.g. [x1, y1, x2, y2]; can be null",
     )
 
     clicklist: Optional[List[List[float]]] = Field(
         None,
-        description="点坐标列表 [[x1,y1], [x2,y2], ...]；可为空",
+        description="List of point coordinates [[x1,y1], [x2,y2], ...]; can be null",
     )
     labels: Optional[List[int]] = Field(
         None,
-        description="点标签列表 [1,0,...]（1=前景，0=背景），长度与 clicklist 一致；可为空",
+        description="List of point labels [1,0,...] (1=foreground, 0=background), same length as clicklist; can be null",
     )
 
     multimask_output: bool = Field(
         True,
-        description="是否预测多张掩码（C 张）",
+        description="Whether to predict multiple masks (C masks)",
     )
     return_logits: bool = Field(
         False,
-        description="是否返回 logits（官方 return_logits）；False 时返回 threshold 后的 mask",
+        description="Whether to return logits (official return_logits); if False, returns thresholded masks",
     )
 
 
-# ======================= SAM2 封装 =======================
+# ======================= SAM2 wrapper =======================
 class SAM2Service:
     def __init__(self, gpu_id: int, ckpt_path: str, cfg_yaml: str):
         if not torch.cuda.is_available():
-            raise RuntimeError("未检测到可用 CUDA 设备。")
+            raise RuntimeError("No available CUDA device detected.")
 
         self.device = torch.device(f"cuda:{gpu_id}")
         torch.cuda.set_device(self.device)
@@ -111,31 +111,31 @@ class SAM2Service:
         self.ckpt_path = ckpt_path
         self.cfg_yaml = cfg_yaml
 
-        print(f"[INFO] 使用设备: {self.device_str}")
-        print(f"[INFO] 加载 SAM2 模型: cfg={self.cfg_yaml}, ckpt={self.ckpt_path}")
+        print(f"[INFO] Using device: {self.device_str}")
+        print(f"[INFO] Loading SAM2 model: cfg={self.cfg_yaml}, ckpt={self.ckpt_path}")
 
         self.predictor = self._build_predictor()
 
     def _build_predictor(self) -> SAM2ImagePredictor:
         """
-        与你之前能正常工作的写法一致：
-        - 用 Hydra 载入 cfg
-        - 调用本地 build_sam2(cfg=..., ckpt_path=..., device=...)
-        - 用 SAM2ImagePredictor 封装（后处理全部交给官方）
+        Same approach as your previously working implementation:
+        - Load cfg via Hydra
+        - Call local build_sam2(cfg=..., ckpt_path=..., device=...)
+        - Wrap with SAM2ImagePredictor (let the official code handle post-processing)
         """
         config_dir = os.path.dirname(self.cfg_yaml)
         config_name = os.path.basename(self.cfg_yaml)
         config_name = config_name.replace(".yaml", "").replace(".yml", "")
 
-        print(f"[Hydra] 初始化配置目录: {config_dir}")
-        print(f"[Hydra] 配置文件名: {config_name}")
+        print(f"[Hydra] Initializing config directory: {config_dir}")
+        print(f"[Hydra] Config file name: {config_name}")
 
         GlobalHydra.instance().clear()
         with initialize_config_dir(version_base=None, config_dir=config_dir):
             cfg = compose(config_name=config_name)
-            print(f"[Hydra] ✅ 成功加载配置: {config_name}")
+            print(f"[Hydra] ✅ Successfully loaded config: {config_name}")
 
-        # 关键：这里用 cfg=cfg，而不是 config_file / model_cfg
+        # Key point: pass cfg=cfg, not config_file / model_cfg
         sam2_model = build_sam2(
             cfg=cfg,
             ckpt_path=self.ckpt_path,
@@ -146,7 +146,7 @@ class SAM2Service:
         return predictor
 
     def _autocast_ctx(self):
-        """与官方 demo 一致，在支持 bf16 的 CUDA 上开启 autocast。"""
+        """Match the official demo: enable autocast bf16 on CUDA devices that support it."""
         import contextlib
 
         if self.device.type == "cuda" and torch.cuda.is_bf16_supported():
@@ -163,16 +163,16 @@ class SAM2Service:
         return_logits: bool = False,
     ):
         """
-        与官方 ImagePredictor 用法一致：
+        Same as the official ImagePredictor usage:
           predictor.set_image(np_image)
           masks, scores, low_res_masks = predictor.predict(...)
         """
         if point_coords is not None and point_labels is None:
-            raise ValueError("提供了 clicklist 但未提供 labels")
+            raise ValueError("clicklist was provided but labels were not provided")
         if point_labels is not None and point_coords is None:
-            raise ValueError("提供了 labels 但未提供 clicklist")
+            raise ValueError("labels were provided but clicklist was not provided")
         if point_coords is not None and len(point_coords) != len(point_labels):
-            raise ValueError("clicklist 与 labels 长度不一致")
+            raise ValueError("clicklist and labels must have the same length")
 
         np_image = np.array(image_pil.convert("RGB"))
 
@@ -185,14 +185,14 @@ class SAM2Service:
                 box=box,
                 multimask_output=multimask_output,
                 return_logits=return_logits,
-                normalize_coords=True,  # 像素坐标 → 归一化
+                normalize_coords=True,  # pixel coords -> normalized
             )
 
         return masks, scores, low_res_masks
 
 
-# ======================= FastAPI & 模型实例 =======================
-app = FastAPI(title="SAM2 图像分割服务（官方 + Hydra cfg）")
+# ======================= FastAPI & model instance =======================
+app = FastAPI(title="SAM2 image segmentation service (official + Hydra cfg)")
 
 sam2_service = SAM2Service(
     gpu_id=args.gpu,
@@ -201,44 +201,44 @@ sam2_service = SAM2Service(
 )
 
 
-# ======================= 接口实现 =======================
+# ======================= Endpoint implementation =======================
 @app.post("/segment", response_class=Response)
 async def segment(request: SegmentRequest):
     try:
-        # 1. 检查图片路径
+        # 1. Validate image path
         if not os.path.exists(request.image_path):
-            raise HTTPException(status_code=404, detail=f"图片路径不存在: {request.image_path}")
+            raise HTTPException(status_code=404, detail=f"Image path does not exist: {request.image_path}")
         if not os.path.isfile(request.image_path):
-            raise HTTPException(status_code=400, detail=f"路径不是有效文件: {request.image_path}")
+            raise HTTPException(status_code=400, detail=f"Path is not a valid file: {request.image_path}")
 
-        # 2. 打开图片
+        # 2. Load image
         try:
             img = Image.open(request.image_path).convert("RGB")
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"无法打开图片文件: {e}")
+            raise HTTPException(status_code=400, detail=f"Failed to open image: {e}")
 
-        # 3. 解析 prompts
+        # 3. Parse prompts
         points_np: Optional[np.ndarray] = None
         labels_np: Optional[np.ndarray] = None
         box_np: Optional[np.ndarray] = None
 
         if request.clicklist is not None:
             if request.labels is None:
-                raise HTTPException(status_code=400, detail="提供了 clicklist 但未提供 labels")
+                raise HTTPException(status_code=400, detail="clicklist was provided but labels were not provided")
             if len(request.clicklist) != len(request.labels):
-                raise HTTPException(status_code=400, detail="clicklist 与 labels 长度不一致")
+                raise HTTPException(status_code=400, detail="clicklist and labels length mismatch")
             points_np = np.asarray(request.clicklist, dtype=np.float32)
             labels_np = np.asarray(request.labels, dtype=np.int32)
 
         if request.bbox is not None:
             if len(request.bbox) != 4:
-                raise HTTPException(status_code=400, detail="bbox 必须是长度为 4 的 [x1, y1, x2, y2]")
+                raise HTTPException(status_code=400, detail="bbox must be a length-4 list [x1, y1, x2, y2]")
             box_np = np.asarray(request.bbox, dtype=np.float32)
 
         if points_np is None and box_np is None:
-            raise HTTPException(status_code=400, detail="至少提供 bbox 或 clicklist 之一")
+            raise HTTPException(status_code=400, detail="At least one of bbox or clicklist must be provided")
 
-        # 4. 调 SAM2
+        # 4. Run SAM2
         masks, scores, low_res_masks = sam2_service.segment(
             image_pil=img,
             point_coords=points_np,
@@ -248,7 +248,7 @@ async def segment(request: SegmentRequest):
             return_logits=request.return_logits,
         )
 
-        # 5. 打包为 .npz 返回
+        # 5. Pack into .npz and return
         buf = io.BytesIO()
         np.savez_compressed(
             buf,
@@ -269,7 +269,7 @@ async def segment(request: SegmentRequest):
         raise
     except Exception as e:
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"处理失败: {e}")
+        raise HTTPException(status_code=500, detail=f"Processing failed: {e}")
 
 
 @app.get("/health")
@@ -283,5 +283,5 @@ async def health_check():
 
 
 if __name__ == "__main__":
-    print(f"SAM2 服务启动中... 使用 GPU: {args.gpu}, 端口: {args.port}")
+    print(f"Starting SAM2 service... GPU: {args.gpu}, port: {args.port}")
     uvicorn.run(app, host="0.0.0.0", port=args.port)

@@ -4,11 +4,11 @@
 """
 test_sam2_npz_bbox.py
 
-测试 sam2_server.py：
-- 向 /segment 发送 image_path + bbox（XYXY 像素坐标）+ 可选点提示
-- 收到 .npz（masks / scores / low_res_masks）
-- 选择 scores 最大的那一张 mask
-- 将 mask 叠加到原图上进行可视化，并保存结果
+Test sam2_server.py:
+- Send image_path + bbox (XYXY pixel coordinates) + optional point prompts to /segment
+- Receive a .npz (masks / scores / low_res_masks)
+- Select the mask with the highest score
+- Overlay the mask on the original image for visualization and save the result
 """
 
 import io
@@ -17,31 +17,31 @@ import numpy as np
 from PIL import Image
 import matplotlib.pyplot as plt
 
-# ================= 配置区域 =================
+# ================= Configuration =================
 
-# FastAPI 服务地址
+# FastAPI server address
 SERVER_URL = "http://127.0.0.1:6060"
 
-# 本地图片路径（和服务器那边 image_path 一致）
+# Local image path (must match the server-side image_path)
 IMAGE_PATH = "/your/path/to/SFT+RL/data_case/Images/liver_case_original_image_1.png"
 
-# 检测得到的 bbox_2d，XYXY 像素坐标
+# Detected bbox_2d, XYXY pixel coordinates
 BBOX_2D = [210, 201, 250, 242]   # [x1, y1, x2, y2]
 
-# 可选：点提示（像素坐标）
-# 例如只用一个前景点：CLICKLIST = [[320, 240]]；LABELS = [1]
-# 如果暂时不用点，把 CLICKLIST 和 LABELS 都设为 None 即可
-# CLICKLIST = [[320, 240]]   # 或 None
-# LABELS    = [1]            # 或 None
-CLICKLIST = None   # 或 None
-LABELS    = None           # 或 None
+# Optional: point prompts (pixel coordinates)
+# Example: use a single foreground point: CLICKLIST = [[320, 240]]; LABELS = [1]
+# If you do not want to use points for now, set both CLICKLIST and LABELS to None
+# CLICKLIST = [[320, 240]]   # or None
+# LABELS    = [1]            # or None
+CLICKLIST = None   # or None
+LABELS    = None           # or None
 
-# 输出文件
+# Output files
 NPZ_PATH = "/your/path/to/verl-agent/examples/env_server/sam2/sam2_server/test/sam2_outputs.npz"
 OVERLAY_PATH = "/your/path/to/verl-agent/examples/env_server/sam2/sam2_server/test/overlay_mask.png"
 
 
-# ================= 调接口函数 =================
+# ================= API call function =================
 
 def call_sam2_segment(
     server_url: str,
@@ -52,10 +52,10 @@ def call_sam2_segment(
     multimask_output: bool = True,
     return_logits: bool = False,
 ):
-    """调用 /segment 接口，返回 masks/scores/low_res_masks"""
+    """Call the /segment endpoint and return masks/scores/low_res_masks."""
     url = server_url.rstrip("/") + "/segment"
 
-    # 注意：FastAPI 那边是 pydantic 模型，None 会被正确解析成 null
+    # Note: the FastAPI side uses a Pydantic model; None will be correctly parsed as null
     payload = {
         "image_path": image_path,
         "bbox": bbox_xyxy,
@@ -72,11 +72,11 @@ def call_sam2_segment(
     try:
         resp.raise_for_status()
     except Exception as e:
-        print("[ERR] HTTP 请求失败，status =", resp.status_code)
+        print("[ERR] HTTP request failed, status =", resp.status_code)
         print("[ERR] body  =", resp.text)
         raise e
 
-    # 服务器返回的是 .npz 的二进制
+    # Server returns binary .npz content
     buf = io.BytesIO(resp.content)
     data = np.load(buf, allow_pickle=False)
 
@@ -88,14 +88,14 @@ def call_sam2_segment(
     print(f"[INFO] scores: {scores}")
     print(f"[INFO] low_res_masks shape: {low_res_masks.shape}")
 
-    # 也保存一份 npz 在本地，方便后续分析
+    # Also save a local copy of the npz for later analysis
     np.savez_compressed(NPZ_PATH, masks=masks, scores=scores, low_res_masks=low_res_masks)
-    print(f"[INFO] .npz 已保存到 {NPZ_PATH}")
+    print(f"[INFO] .npz saved to {NPZ_PATH}")
 
     return masks, scores, low_res_masks
 
 
-# ================= 可视化函数 =================
+# ================= Visualization function =================
 
 def overlay_mask_on_image(
     image_path: str,
@@ -104,19 +104,19 @@ def overlay_mask_on_image(
     clicklist=None,
     save_path: str = None,
 ):
-    """将 0/1 mask 叠加到原图上，可选画出 bbox 和点"""
+    """Overlay a 0/1 mask on the original image, optionally drawing the bbox and point prompts."""
 
     img = Image.open(image_path).convert("RGB")
     img_np = np.array(img)  # (H, W, 3)
 
     if mask.shape != img_np.shape[:2]:
-        raise ValueError(f"mask shape {mask.shape} 与图像 shape {img_np.shape[:2]} 不匹配")
+        raise ValueError(f"mask shape {mask.shape} does not match image shape {img_np.shape[:2]}")
 
-    # 确保 mask 是 0/1
+    # Ensure mask is binary 0/1
     mask_bin = (mask > 0.5).astype(np.uint8)
 
     overlay = img_np.copy()
-    overlay[mask_bin == 1] = [255, 0, 0]  # 红色
+    overlay[mask_bin == 1] = [255, 0, 0]  # red
 
     alpha = 0.5
     vis = (img_np * (1 - alpha) + overlay * alpha).astype(np.uint8)
@@ -126,7 +126,7 @@ def overlay_mask_on_image(
     ax.axis("off")
     ax.set_title("SAM2 Mask Overlay")
 
-    # 画 bbox
+    # Draw bbox
     if bbox_xyxy is not None:
         x1, y1, x2, y2 = bbox_xyxy
         import matplotlib.patches as patches
@@ -140,7 +140,7 @@ def overlay_mask_on_image(
         )
         ax.add_patch(rect)
 
-    # 画点提示
+    # Draw point prompts
     if clicklist is not None and len(clicklist) > 0:
         xs = [p[0] for p in clicklist]
         ys = [p[1] for p in clicklist]
@@ -150,15 +150,15 @@ def overlay_mask_on_image(
 
     if save_path is not None:
         plt.savefig(save_path, bbox_inches="tight")
-        print(f"[INFO] 叠加结果已保存到 {save_path}")
+        print(f"[INFO] Overlay result saved to {save_path}")
 
     plt.show()
 
 
-# ================= 主流程 =================
+# ================= Main pipeline =================
 
 def main():
-    # 1. 调用服务，拿到所有候选 masks
+    # 1. Call the service and get all candidate masks
     masks, scores, _ = call_sam2_segment(
         SERVER_URL,
         IMAGE_PATH,
@@ -169,13 +169,13 @@ def main():
         return_logits=False,
     )
 
-    # 2. 选 scores 最大的那一张（官方推荐用法）
+    # 2. Select the mask with the highest score (official recommended usage)
     best_idx = int(np.argmax(scores))
     best_mask = masks[best_idx]
 
-    print(f"[INFO] 选取得分最高的 mask: index={best_idx}, score={scores[best_idx]:.4f}")
+    print(f"[INFO] Selected best mask: index={best_idx}, score={scores[best_idx]:.4f}")
 
-    # 3. 叠加到原图上进行可视化（画出 bbox 和点）
+    # 3. Overlay on the original image for visualization (draw bbox and points)
     overlay_mask_on_image(
         IMAGE_PATH,
         best_mask,
