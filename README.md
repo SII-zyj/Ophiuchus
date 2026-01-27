@@ -258,5 +258,5 @@ We gratefully acknowledge the inspiring work of [VERL](https://github.com/volcen
 ## 📖 Citation
 
 ```bash
-Under Review ICLR 2026
+Under Review ICML 2026
 ```
