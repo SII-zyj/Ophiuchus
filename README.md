@@ -51,7 +51,6 @@ If you find this project useful, please give us a star.
 - [Toolbox](#-toolbox)
 - [Case Showcase](#-case-showcase)
 - [Results](#-results)
-- [Citation and Growth](#-citation-and-growth)
 - [Data Preparation](#-data-preparation)
 - [Training](#️-training)
 - [Model](#-model)
@@ -186,20 +185,6 @@ Below are representative qualitative cases. More details, captions, and examples
 <div align="center">
   <img width="880" alt="Ophiuchus benchmark results" src="asset/result.png">
 </div>
-
----
-
-## 📈 Citation and Growth
-
-If Ophiuchus helps your research, please cite our paper and star the repository. Citation statistics will be updated after indexing by major academic search engines.
-
-<a href="https://www.star-history.com/?repos=SII-zyj%2FOphiuchus&type=date&legend=top-left">
- <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=SII-zyj/Ophiuchus&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=SII-zyj/Ophiuchus&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=SII-zyj/Ophiuchus&type=date&legend=top-left" />
- </picture>
-</a>
 
 ---
 
@@ -391,9 +376,18 @@ We gratefully acknowledge the inspiring work of [VERL](https://github.com/volcen
 
 ---
 
-## 📖 Citation
+## 📈 Citation
 
-If you find Ophiuchus useful, please cite our paper.
+If Ophiuchus helps your research, please cite our paper and star the repository. Citation statistics will be updated after indexing by major academic search engines.
+
+<a href="https://www.star-history.com/?repos=SII-zyj%2FOphiuchus&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=SII-zyj/Ophiuchus&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=SII-zyj/Ophiuchus&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=SII-zyj/Ophiuchus&type=date&legend=top-left" />
+ </picture>
+</a>
+
 
 ```bibtex
 @misc{jiang2025incentivizing,
