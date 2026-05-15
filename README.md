@@ -193,19 +193,13 @@ Below are representative qualitative cases. More details, captions, and examples
 
 If Ophiuchus helps your research, please cite our paper and star the repository. Citation statistics will be updated after indexing by major academic search engines.
 
-<div align="center">
-
-<a href="https://star-history.com/#SII-zyj/Ophiuchus&Date">
-  <img src="https://api.star-history.com/svg?repos=SII-zyj/Ophiuchus&type=Date" width="780" alt="Ophiuchus star history chart" />
+<a href="https://www.star-history.com/?repos=SII-zyj%2FOphiuchus&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=SII-zyj/Ophiuchus&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=SII-zyj/Ophiuchus&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=SII-zyj/Ophiuchus&type=date&legend=top-left" />
+ </picture>
 </a>
-
-</div>
-
-<p align="center">
-  <a href="https://arxiv.org/abs/2512.14157"><img src="https://img.shields.io/badge/Paper-arXiv_2512.14157-b31b1b" alt="arXiv paper"></a>
-  <a href="https://huggingface.co/papers/2512.14157"><img src="https://img.shields.io/badge/HuggingFace-Paper-yellow" alt="Hugging Face paper"></a>
-  <img src="https://img.shields.io/badge/Citations-updating_after_indexing-lightgrey" alt="Citations updating after indexing">
-</p>
 
 ---
 
